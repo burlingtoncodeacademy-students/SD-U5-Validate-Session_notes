@@ -57,7 +57,7 @@ router.get("/find-one/:id", validateSession, async(req,res) => {
 });
 
 // Get all movies by genre
-router.get("/genre/:genre", async(req,res) => {
+router.get("/genre/:genre",validateSession, async(req,res) => {
     try {
         
         const { genre } = req.params;
