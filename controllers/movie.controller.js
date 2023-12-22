@@ -1,17 +1,19 @@
 const router = require('express').Router();
 const Movie = require('../models/movie.model');
 const { errorResponse, successResponse, incompleteResponse } = require('../helpers');
+const validateSession = require('../middleware/validate-session');
 
 // Create one
-router.post('/', async(req,res) => {
+router.post('/', validateSession, async(req,res) => {
     try {
-        
+
         const {
             title,genre,rating,length,releaseYear
         } = req.body;
 
         const movie = new Movie({
-            title,genre,rating,length,releaseYear
+            title,genre,rating,length,releaseYear,
+            owner_id: req.user._id
         });
 
         const newMovie = await movie.save();
@@ -39,11 +41,11 @@ router.get("/", async(req,res) => {
 });
 
 // Get one movie by id
-router.get("/find-one/:id", async(req,res) => {
+router.get("/find-one/:id", validateSession, async(req,res) => {
     try {
 
         const { id } = req.params;
-        const getMovie = await Movie.findOne({ _id: id });
+        const getMovie = await Movie.findOne({ _id: id, owner_id: req.user._id });
 
         getMovie ?
             successResponse(res,getMovie) :
@@ -74,7 +76,7 @@ router.get("/genre/:genre", async(req,res) => {
             }
         }
 
-        const getMovies = await Movie.find({genre: buildWord});
+        const getMovies = await Movie.find({genre: buildWord, owner_id: req.user._id});
 
         getMovies.length > 0 ?
             successResponse(res,getMovies) :
@@ -86,12 +88,17 @@ router.get("/genre/:genre", async(req,res) => {
 });
 
 // Update One PUT/PATCH
-router.patch('/:id', async(req,res) => {
+router.patch('/:id', validateSession, async(req,res) => {
     try {
         const { id } = req.params
         const info = req.body;
 
-        const update = await Movie.findOneAndUpdate({_id: id}, info,{new: true});
+        const filter = {
+            _id: id,
+            owner_id: req.user._id
+        }
+
+        const update = await Movie.findOneAndUpdate(filter, info,{new: true});
 
         update ?
             successResponse(res, update) : 
@@ -103,11 +110,11 @@ router.patch('/:id', async(req,res) => {
 });
 
 // Delete One
-router.delete('/:id', async(req,res) => {
+router.delete('/:id', validateSession, async(req,res) => {
     try {
         const { id } = req.params;
 
-        const deleteMovie = await Movie.deleteOne({_id: id});
+        const deleteMovie = await Movie.deleteOne({_id: id, owner_id: req.user._id});
 
         deleteMovie.deletedCount ? 
             successResponse(res, "Movie removed") :
